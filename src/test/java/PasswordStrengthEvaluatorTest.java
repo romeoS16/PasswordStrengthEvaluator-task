@@ -5,13 +5,15 @@ import static org.junit.Assert.assertEquals;
 
 public class PasswordStrengthEvaluatorTest {
 
-    // --- Ungültige / triviale Fälle ---
+    // Vorgabe aus dem Aufgabenblatt
 
     @Test
     public void nullPassword_isWeak() {
-        String result = PasswordStrengthEvaluator.evaluateStrength(null);
+        String result = PasswordStrengthEvaluator.evaluateStrength("ab1");
         assertEquals("WEAK", result);
     }
+
+    // A: Ungültige Passwörter
 
     @Test
     public void emptyPassword_isWeak() {
@@ -21,95 +23,122 @@ public class PasswordStrengthEvaluatorTest {
 
     @Test
     public void passwordWithSpace_isWeak() {
-        String result = PasswordStrengthEvaluator.evaluateStrength("Abc 123!");
+        String result1 = PasswordStrengthEvaluator.evaluateStrength("Abc 123");
+        String result2 = PasswordStrengthEvaluator.evaluateStrength(" pass");
+        String result3 = PasswordStrengthEvaluator.evaluateStrength("pass ");
+
+        assertEquals("WEAK", result1);
+        assertEquals("WEAK", result2);
+        assertEquals("WEAK", result3);
+    }
+
+    // B: Länge < 6 -> immer WEAK
+
+
+    @Test
+    public void veryShortPassword_isWeak() {
+        String result = PasswordStrengthEvaluator.evaluateStrength("a");
         assertEquals("WEAK", result);
     }
 
     @Test
-    public void shortPassword_belowLengthSix_isWeak_evenIfFancy() {
-        // Länge 5, enthält aber Groß-/Kleinbuchstaben, Ziffer und Sonderzeichen
+    public void shortButComplexPassword_isWeak() {
+        // enthält Kleinbuchstaben, Großbuchstaben, Ziffer, Sonderzeichen,
+        // ist aber zu kurz (< 6)
         String result = PasswordStrengthEvaluator.evaluateStrength("Ab1!");
         assertEquals("WEAK", result);
     }
 
-    // --- Einfache gültige Passwörter (Länge >= 6) ---
-
-    @Test
-    public void onlyLowercaseLetters_minLength_isWeak() {
-        String result = PasswordStrengthEvaluator.evaluateStrength("abcdef");
-        // Kriterien: nur Kleinbuchstaben -> 1 Punkt
-        assertEquals("WEAK", result);
-    }
+    // C: 0–2 Punkte -> WEAK
 
     @Test
     public void lowercaseAndDigits_isWeak() {
         String result = PasswordStrengthEvaluator.evaluateStrength("abc123");
-        // Kriterien: Kleinbuchstaben + Ziffern -> 2 Punkte
+        // Kleinbuchstaben + Ziffern -> 2 Punkte -> WEAK
         assertEquals("WEAK", result);
     }
 
-    // --- MEDIUM-Fälle (genau 3 Punkte) ---
+    @Test
+    public void longButOnlyLowercase_isStillWeak() {
+        String result = PasswordStrengthEvaluator.evaluateStrength("abcdefghij");
+        // Kleinbuchstaben + Länge >= 10 -> 2 Punkte -> WEAK
+        assertEquals("WEAK", result);
+    }
 
     @Test
-    public void upperLowerAndDigit_lengthSix_isMedium() {
+    public void upperAndLowerCase_isWeak() {
+        String result = PasswordStrengthEvaluator.evaluateStrength("abcABC");
+        // Kleinbuchstaben + Großbuchstabe -> 2 Punkte -> WEAK
+        assertEquals("WEAK", result);
+    }
+
+    @Test
+    public void upperCaseAndSpecialLetter_isWeak() {
+        String result = PasswordStrengthEvaluator.evaluateStrength("ABCDE!&");
+        // Großbuchstabe + Sonderzeichen -> 2 Punkte -> WEAK
+        assertEquals("WEAK", result);
+    }
+
+
+    @Test
+    public void longOnlyDigits_isWeak() {
+        String result = PasswordStrengthEvaluator.evaluateStrength("1234567890");
+        // Ziffern + Länge >= 10 -> 2 Punkte -> WEAK
+        assertEquals("WEAK", result);
+    }
+
+    // D: Genau 3 Punkte -> MEDIUM
+
+    @Test
+    public void exampleFromSpec_Abc123_isMedium() {
         String result = PasswordStrengthEvaluator.evaluateStrength("Abc123");
-        // Kriterien: Groß + klein + Ziffer (3 Punkte), Länge < 10 -> 3 Punkte -> MEDIUM
+        // Groß + klein + Ziffer -> 3 Punkte -> MEDIUM
         assertEquals("MEDIUM", result);
     }
 
     @Test
-    public void mediumPassword_example_isMedium() {
-        String result = PasswordStrengthEvaluator.evaluateStrength("Abcdef12");
-        // Groß + klein + Ziffer, Länge >= 6 aber < 10, kein Sonderzeichen -> 3 Punkte -> MEDIUM
+    public void upperLowerDigit_lengthSeven_isMedium() {
+        String result = PasswordStrengthEvaluator.evaluateStrength("Abcdef1");
+        // Groß + klein + Ziffer, Länge < 10 -> 3 Punkte -> MEDIUM
         assertEquals("MEDIUM", result);
     }
 
-    // --- STRONG-Fälle (>= 4 Punkte) ---
+    // E: 4 oder 5 Punkte -> STRONG
 
     @Test
-    public void strongPassword_withAllCharTypes_isStrong_evenIfLengthBelowTen() {
+    public void allCharTypes_butLengthBelowTen_isStrong() {
         String result = PasswordStrengthEvaluator.evaluateStrength("Abcdef1!");
-        // Groß + klein + Ziffer + Sonderzeichen (4 Punkte), Länge < 10 -> 4 Punkte -> STRONG
+        // Groß + klein + Ziffer + Sonderzeichen, Länge < 10 -> 4 Punkte -> STRONG
         assertEquals("STRONG", result);
     }
 
     @Test
-    public void strongPassword_withAllCharTypes_andLengthAtLeastTen_isStrong() {
+    public void noSpecialButLongEnough_isStrong() {
+        String result = PasswordStrengthEvaluator.evaluateStrength("Abcdef1234");
+        // Groß + klein + Ziffer + Länge >= 10 -> 4 Punkte -> STRONG
+        assertEquals("STRONG", result);
+    }
+
+    @Test
+    public void allCriteriaMet_isStrong() {
         String result = PasswordStrengthEvaluator.evaluateStrength("Abcdef12!x");
         // Groß + klein + Ziffer + Sonderzeichen + Länge>=10 -> 5 Punkte -> STRONG
         assertEquals("STRONG", result);
     }
 
     @Test
-    public void strongPassword_withoutSpecialButLongEnough_isStrong() {
-        String result = PasswordStrengthEvaluator.evaluateStrength("Abcdef1234");
-        // Groß + klein + Ziffer + Länge>=10 -> 4 Punkte -> STRONG
+    public void longComplexPasswordFromSpec_isStrong() {
+        String result = PasswordStrengthEvaluator.evaluateStrength("aaaAAAbbb!223j");
+        // Beispiel aus Aufgabenstellung -> STRONG
         assertEquals("STRONG", result);
     }
 
-    // --- Grenzfälle rund um die Punktgrenzen ---
+    // F: Sonderfälle / „komische“ Kombinationen
 
     @Test
-    public void passwordWithExactlyTwoCriteria_isWeak() {
-        // Kleinbuchstaben + Länge>=10, aber keine Ziffer, kein Großbuchstabe, kein Sonderzeichen
-        String result = PasswordStrengthEvaluator.evaluateStrength("abcdefghij");
-        // hasLower + length>=10 -> 2 Punkte -> WEAK
+    public void onlySpecialChars_isWeak() {
+        String result = PasswordStrengthEvaluator.evaluateStrength("!!!!??");
+        // nur Sonderzeichen -> 1 Punkt -> WEAK
         assertEquals("WEAK", result);
-    }
-
-    @Test
-    public void passwordWithExactlyThreeCriteria_isMedium() {
-        // Groß + klein + Ziffer, Länge < 10, kein Sonderzeichen
-        String result = PasswordStrengthEvaluator.evaluateStrength("Abc1234");
-        // 3 Punkte -> MEDIUM
-        assertEquals("MEDIUM", result);
-    }
-
-    @Test
-    public void passwordWithExactlyFourCriteria_isStrong() {
-        // Groß + klein + Ziffer + Sonderzeichen, Länge < 10
-        String result = PasswordStrengthEvaluator.evaluateStrength("Abc12!x");
-        // 4 Punkte -> STRONG
-        assertEquals("STRONG", result);
     }
 }
